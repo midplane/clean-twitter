@@ -6,8 +6,10 @@ writes `.output/clean-twitter-<version>-chrome.zip`.
 ## Before you upload
 
 - [ ] Bump `version` in `package.json` — CWS rejects a re-upload at the same version
-- [ ] Publish a privacy policy somewhere public and put the URL in the listing
 - [ ] `pnpm zip` and upload the chrome zip
+- [ ] Privacy policy URL: once this repo is public, GitHub's rendered view of
+      [PRIVACY.md](PRIVACY.md) is a valid public URL for the listing —
+      `https://github.com/midplane/clean-twitter/blob/main/PRIVACY.md`
 
 ## Single purpose
 
