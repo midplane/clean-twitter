@@ -83,7 +83,11 @@ export default defineContentScript({
       // the cheap check above can't produce; re-compare before reprocessing.
       if (settled) {
         if (article.dataset.ctId === tweet.id) return;
+        // The node now shows a different post. Its placeholder still carries the
+        // previous post's reason, and a Show handler closed over the previous
+        // id, so the cell has to be stripped before this post is decided.
         delete article.dataset.ctState;
+        clearCell(cellOf(article));
       }
 
       article.dataset.ctId = tweet.id;
@@ -187,6 +191,12 @@ export default defineContentScript({
       cellOf(article).classList.remove('ct-pending');
     }
 
+    /** Strips every trace of a previous verdict from a timeline cell. */
+    function clearCell(cell: HTMLElement) {
+      cell.classList.remove('ct-pending', 'ct-collapsed', 'ct-blurred', 'ct-removed');
+      cell.querySelector('.ct-placeholder')?.remove();
+    }
+
     function unmaskById(id: string) {
       for (const article of articlesFor(id)) unmask(article);
     }
@@ -222,12 +232,12 @@ export default defineContentScript({
     }
 
     function resetAll() {
-      for (const node of document.querySelectorAll('.ct-placeholder')) node.remove();
       for (const cell of document.querySelectorAll<HTMLElement>(
         '.ct-pending, .ct-collapsed, .ct-blurred, .ct-removed',
       )) {
-        cell.classList.remove('ct-pending', 'ct-collapsed', 'ct-blurred', 'ct-removed');
+        clearCell(cell);
       }
+      for (const node of document.querySelectorAll('.ct-placeholder')) node.remove();
       for (const article of document.querySelectorAll<HTMLElement>(TWEET_SELECTOR)) {
         delete article.dataset.ctState;
       }

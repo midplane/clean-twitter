@@ -14,17 +14,28 @@ export default defineBackground(() => {
   // Cached verdicts survive settings changes: entries record the question set
   // that produced them and thresholds are applied at read time, so moving a
   // threshold costs nothing and enabling a signal re-checks only what it must.
-  settingsStore.watch(async () => {
-    const tabs = await browser.tabs.query({ url: ['*://x.com/*', '*://twitter.com/*'] });
-    for (const tab of tabs) {
-      if (tab.id !== undefined) {
-        browser.tabs.sendMessage(tab.id, { type: 'settingsChanged' }).catch(() => {
-          /* tab has no content script yet */
-        });
-      }
-    }
+  //
+  // Debounced because settings are saved per keystroke and per slider tick, and
+  // each broadcast makes every open timeline drop its decisions and rescan. A
+  // custom filter's wording is part of the cache signature, so an undebounced
+  // broadcast would also re-classify the visible posts on every keystroke.
+  let broadcastTimer: ReturnType<typeof setTimeout> | undefined;
+  settingsStore.watch(() => {
+    clearTimeout(broadcastTimer);
+    broadcastTimer = setTimeout(broadcastSettingsChanged, 400);
   });
 });
+
+async function broadcastSettingsChanged() {
+  const tabs = await browser.tabs.query({ url: ['*://x.com/*', '*://twitter.com/*'] });
+  for (const tab of tabs) {
+    if (tab.id !== undefined) {
+      browser.tabs.sendMessage(tab.id, { type: 'settingsChanged' }).catch(() => {
+        /* tab has no content script yet */
+      });
+    }
+  }
+}
 
 async function handle(message: Message) {
   switch (message.type) {

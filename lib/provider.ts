@@ -36,6 +36,19 @@ export const PROVIDERS: Record<
 };
 
 const MAX_RETRY_DELAY_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * Every request gets a timeout: the wait holds a concurrency slot, so a hung
+ * connection would otherwise stall classification until the tab is closed.
+ */
+function requestSignal(external?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  if (!external) return timeout;
+  return typeof AbortSignal.any === 'function'
+    ? AbortSignal.any([external, timeout])
+    : external;
+}
 
 /** $0.042 per million input tokens; output tokens are free. */
 const USD_PER_INPUT_TOKEN = 0.042 / 1_000_000;
@@ -221,10 +234,13 @@ export async function callSystemOne(
         state: opts.state,
         questions: opts.questions,
       }),
-      signal: opts.signal,
+      signal: requestSignal(opts.signal),
     });
   } catch (err) {
     if (opts.signal?.aborted) throw err;
+    if ((err as Error).name === 'TimeoutError') {
+      throw new ProviderError(`No response after ${REQUEST_TIMEOUT_MS / 1000}s`, 0, true);
+    }
     throw new ProviderError(`Network error: ${(err as Error).message}`, 0, true);
   }
 
