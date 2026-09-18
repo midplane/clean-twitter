@@ -1,0 +1,84 @@
+@import "../../assets/ui.css";
+
+body {
+  width: 336px;
+}
+
+.card:first-child {
+  border-top: none;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+}
+
+.notice {
+  background: var(--accent-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Reserves room for the widest value ("95%") so the slider never abuts it. */
+.thresh {
+  width: 34px;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.quality {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.caption.below {
+  margin: 6px 0 0;
+}
+
+.media {
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.cost {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+}
+
+.foot a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice.error {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.notice.error .grow {
+  line-height: 1.4;
+}
+
+.dismiss {
+  flex: none;
+  padding: 2px 7px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+}

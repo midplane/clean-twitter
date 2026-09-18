@@ -1,0 +1,88 @@
+/* Masked while a verdict is pending: keeps layout, hides content, never flashes. */
+.ct-pending > div,
+.ct-pending > article {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.ct-removed {
+  display: none !important;
+}
+
+.ct-collapsed article {
+  display: none !important;
+}
+
+.ct-blurred article {
+  filter: blur(11px) saturate(0.4);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ct-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font: 400 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: rgb(113, 118, 123);
+  border-bottom: 1px solid rgb(239, 243, 244);
+  background: transparent;
+}
+
+.ct-blurred .ct-placeholder {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 auto 0;
+  justify-content: center;
+  border-bottom: none;
+}
+
+.ct-blurred {
+  position: relative;
+}
+
+.ct-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: rgb(120, 86, 255);
+}
+
+.ct-reason {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ct-show {
+  flex: none;
+  padding: 3px 12px;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+  border: 1px solid rgb(207, 217, 222);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ct-show:hover {
+  background: rgba(120, 86, 255, 0.1);
+  border-color: rgb(120, 86, 255);
+  color: rgb(120, 86, 255);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ct-placeholder {
+    color: rgb(139, 152, 165);
+    border-bottom-color: rgb(47, 51, 54);
+  }
+
+  .ct-show {
+    border-color: rgb(83, 100, 113);
+  }
+}
