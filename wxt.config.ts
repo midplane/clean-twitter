@@ -7,7 +7,9 @@ export default defineConfig({
   // unpacked extension in your own Chrome instead — it keeps your X session, and
   // WXT's reload client still connects to the dev server, so saves auto-apply.
   webExt: { disabled: true },
-  manifest: {
+  // A function, so Firefox-only keys stay out of the Chrome manifest — Chrome
+  // logs "Unrecognized manifest key" for them and store review flags it.
+  manifest: ({ browser }) => ({
     name: 'Clean Twitter',
     description:
       'Filters AI slop, rage bait, ads and media out of your X timeline using TypeSafe Jev.',
@@ -21,8 +23,8 @@ export default defineConfig({
       '*://x.com/*',
       '*://twitter.com/*',
     ],
-    browser_specific_settings: {
-      gecko: { id: 'clean-twitter@midplane' },
-    },
-  },
+    ...(browser === 'firefox'
+      ? { browser_specific_settings: { gecko: { id: 'clean-twitter@midplane' } } }
+      : {}),
+  }),
 });
