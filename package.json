@@ -3,6 +3,7 @@
   "description": "Filters AI slop, rage bait, ads and media out of your X timeline using TypeSafe's Jev model.",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "wxt",
