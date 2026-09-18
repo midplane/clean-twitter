@@ -35,6 +35,8 @@ export const PROVIDERS: Record<
   },
 };
 
+const MAX_RETRY_DELAY_MS = 30_000;
+
 /** $0.042 per million input tokens; output tokens are free. */
 const USD_PER_INPUT_TOKEN = 0.042 / 1_000_000;
 
@@ -140,8 +142,8 @@ export function buildState(tweet: TweetInput): Record<string, unknown> {
     text: tweet.text,
   };
   if (tweet.quotedText) state.quoted_post = tweet.quotedText;
-  if (tweet.hasImage) state.attachments = 'image';
-  if (tweet.hasVideo) state.attachments = 'video';
+  const attachments = [tweet.hasImage && 'image', tweet.hasVideo && 'video'].filter(Boolean);
+  if (attachments.length) state.attachments = attachments.join(', ');
   if (tweet.isReply) state.is_reply = true;
   return state;
 }
@@ -230,9 +232,11 @@ export async function callSystemOne(
 
   const retryable = res.status === 429 || res.status === 529 || res.status >= 500;
   if (retryable && attempt < 3) {
+    // Clamped: the wait happens while holding a concurrency slot, so an honoured
+    // `retry-after: 3600` would stall every other post behind it for an hour.
     const headerDelay = Number(res.headers.get('retry-after')) * 1000;
     const delay = Number.isFinite(headerDelay) && headerDelay > 0
-      ? headerDelay
+      ? Math.min(headerDelay, MAX_RETRY_DELAY_MS)
       : 400 * 2 ** attempt + Math.random() * 200;
     await new Promise((r) => setTimeout(r, delay));
     return callSystemOne(opts, attempt + 1);

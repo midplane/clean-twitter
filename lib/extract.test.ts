@@ -143,6 +143,16 @@ describe('readMedia', () => {
     });
   });
 
+  test('a post with both photos and a GIF reports both', () => {
+    const media = readMedia(render(tweetHtml({ photos: 2, gif: true })));
+    expect(media.hasImage).toBe(true);
+    expect(media.hasGif).toBe(true);
+  });
+
+  test('a GIF alone is not counted as a video', () => {
+    expect(readMedia(render(tweetHtml({ gif: true }))).hasVideo).toBe(false);
+  });
+
   test('a text-only post has no media', () => {
     expect(readMedia(render(tweetHtml({})))).toEqual({
       hasImage: false,

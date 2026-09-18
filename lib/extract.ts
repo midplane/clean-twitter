@@ -102,20 +102,22 @@ export interface Media {
 }
 
 export function readMedia(article: HTMLElement): Media {
-  const hasVideo = !!article.querySelector(
-    '[data-testid="videoPlayer"], [data-testid="videoComponent"], video',
-  );
-  const photos = article.querySelectorAll('[data-testid="tweetPhoto"]');
-  let hasGif = false;
-  for (const photo of photos) {
+  // A post can carry more than one kind at once, so these are counted
+  // independently rather than letting one kind cancel another out.
+  let images = 0;
+  let gifs = 0;
+  for (const photo of article.querySelectorAll<HTMLElement>('[data-testid="tweetPhoto"]')) {
     // GIFs render as a muted <video> inside a tweetPhoto, with a "GIF" badge.
-    if (photo.querySelector('video') || photo.textContent?.trim() === 'GIF') hasGif = true;
+    if (photo.querySelector('video') || photo.textContent?.trim() === 'GIF') gifs++;
+    else images++;
   }
-  return {
-    hasImage: photos.length > 0 && !hasGif,
-    hasVideo: hasVideo && !hasGif,
-    hasGif,
-  };
+
+  const players = article.querySelector('[data-testid="videoPlayer"], [data-testid="videoComponent"]');
+  const looseVideo = [...article.querySelectorAll<HTMLElement>('video')].some(
+    (v) => !v.closest('[data-testid="tweetPhoto"]'),
+  );
+
+  return { hasImage: images > 0, hasVideo: !!players || looseVideo, hasGif: gifs > 0 };
 }
 
 function isReply(article: HTMLElement): boolean {

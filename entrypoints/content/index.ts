@@ -1,6 +1,7 @@
 import { defineContentScript, browser } from '#imports';
 import { TWEET_SELECTOR, extractTweet, readTweetId, type Extracted } from '@/lib/extract';
 import { loadSettings } from '@/lib/settings';
+import { activeCustomFilters } from '@/lib/provider';
 import { activeKey } from '@/lib/defaults';
 import type { Settings, TweetInput, Verdict } from '@/lib/types';
 import './style.css';
@@ -109,7 +110,7 @@ export default defineContentScript({
       if (!tweet.text && !tweet.quotedText) return;
 
       if (article.dataset.ctState === 'pending') return;
-      if (settings.hideUntilChecked) mask(article);
+      if (settings.hideUntilChecked) mask(article, tweet.id);
 
       queue.set(tweet.id, toInput(tweet));
       scheduleFlush();
@@ -170,10 +171,13 @@ export default defineContentScript({
       return out;
     }
 
-    function mask(article: HTMLElement) {
+    function mask(article: HTMLElement, id: string) {
       article.dataset.ctState = 'pending';
       cellOf(article).classList.add('ct-pending');
       window.setTimeout(() => {
+        // The node may have been recycled for a different post by now; unmasking
+        // then would flash the new post into view mid-check.
+        if (article.dataset.ctId !== id) return;
         if (article.dataset.ctState === 'pending') unmask(article);
       }, FAILSAFE_MS);
     }
@@ -246,7 +250,11 @@ function toInput(t: Extracted): TweetInput {
 }
 
 function needsModel(s: Settings): boolean {
-  return Object.values(s.signals).some((c) => c.enabled) || s.minQuality > 0;
+  return (
+    Object.values(s.signals).some((c) => c.enabled) ||
+    s.minQuality > 0 ||
+    activeCustomFilters(s).length > 0
+  );
 }
 
 function isAllowlisted(author: string, s: Settings): boolean {

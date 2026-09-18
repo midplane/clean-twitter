@@ -140,7 +140,7 @@ let statsTimer: ReturnType<typeof setTimeout> | undefined;
 let statsQueue: Promise<unknown> = Promise.resolve();
 
 function recordUsage(inputTokens: number, filtered: boolean, reason?: string) {
-  pending ??= { checked: 0, filtered: 0, bySignal: {}, inputTokens: 0, cost: 0 };
+  pending ??= emptyDelta();
   pending.checked += 1;
   pending.inputTokens += inputTokens;
   pending.cost += costOf(inputTokens);
@@ -164,18 +164,46 @@ async function flushStats() {
   pending = null;
   if (!delta) return;
 
-  const stored = (await statsStore.getValue()) ?? EMPTY_STATS;
-  const bySignal = { ...stored.bySignal };
-  for (const [label, count] of Object.entries(delta.bySignal)) {
-    bySignal[label] = (bySignal[label] ?? 0) + count;
+  try {
+    await mergeStats(delta);
+  } catch (err) {
+    // Put the counts back so the next flush retries them rather than losing them.
+    mergeInto((pending ??= emptyDelta()), delta);
+    console.warn('[clean-twitter] stats write failed', err);
   }
-  await statsStore.setValue({
-    checked: stored.checked + delta.checked,
-    filtered: stored.filtered + delta.filtered,
-    bySignal,
-    inputTokens: stored.inputTokens + delta.inputTokens,
-    cost: stored.cost + delta.cost,
-  });
+}
+
+function emptyDelta(): Stats {
+  return { checked: 0, filtered: 0, bySignal: {}, inputTokens: 0, cost: 0 };
+}
+
+function mergeInto(target: Stats, delta: Stats) {
+  target.checked += delta.checked;
+  target.filtered += delta.filtered;
+  target.inputTokens += delta.inputTokens;
+  target.cost += delta.cost;
+  for (const [label, count] of Object.entries(delta.bySignal)) {
+    target.bySignal[label] = (target.bySignal[label] ?? 0) + count;
+  }
+}
+
+async function mergeStats(delta: Stats) {
+  const stored = (await statsStore.getValue()) ?? EMPTY_STATS;
+  const merged = { ...stored, bySignal: { ...stored.bySignal } };
+  mergeInto(merged, delta);
+  await statsStore.setValue(merged);
+}
+
+/**
+ * #2: resetting has to drop the buffered delta too, or the next flush adds the
+ * counts the user just cleared straight back on.
+ */
+export async function resetStats() {
+  pending = null;
+  clearTimeout(statsTimer);
+  statsTimer = undefined;
+  statsQueue = statsQueue.then(() => statsStore.setValue(EMPTY_STATS));
+  await statsQueue;
 }
 
 /**
@@ -187,19 +215,41 @@ export const errorStore = storage.defineItem<{ message: string; at: number } | n
   { fallback: null },
 );
 
-async function noteError(message: string) {
-  await errorStore.setValue({ message, at: Date.now() });
+/**
+ * Errors go stale: one dropped request should not still be greeting the user
+ * days later. Anything older than this is treated as resolved on read.
+ */
+export const ERROR_TTL_MS = 10 * 60 * 1000;
+
+export async function readError(): Promise<{ message: string; at: number } | null> {
+  const stored = await errorStore.getValue();
+  if (!stored) return null;
+  return Date.now() - stored.at < ERROR_TTL_MS ? stored : null;
 }
 
-async function clearError() {
-  if ((await errorStore.getValue()) !== null) await errorStore.setValue(null);
+/**
+ * Serialised, and only ever settled once per batch. Writing per-request from
+ * both the success and failure paths let a single success inside a partly
+ * rate-limited batch erase the very error worth showing.
+ */
+let errorQueue: Promise<unknown> = Promise.resolve();
+
+function settleError(message: string | null) {
+  errorQueue = errorQueue
+    .then(async () => {
+      if (message) return errorStore.setValue({ message, at: Date.now() });
+      if ((await errorStore.getValue()) !== null) await errorStore.setValue(null);
+    })
+    .catch(() => undefined);
 }
 
 let active = 0;
 const waiting: Array<() => void> = [];
 
 async function withSlot<T>(fn: () => Promise<T>): Promise<T> {
-  if (active >= MAX_CONCURRENCY) {
+  // Loops rather than waking straight into the slot: a caller arriving in the
+  // gap between the release and this microtask could otherwise take it first.
+  while (active >= MAX_CONCURRENCY) {
     await new Promise<void>((resolve) => waiting.push(resolve));
   }
   active++;
@@ -246,7 +296,6 @@ async function classifyOne(tweet: TweetInput, settings: Settings): Promise<Verdi
 
   const verdict = decide(tweet.id, entry, settings);
   recordUsage(res.usage?.input_tokens ?? 0, verdict.filtered, verdict.reason);
-  void clearError();
   return verdict;
 }
 
@@ -257,7 +306,7 @@ export async function classify(
   await ensureCache();
   const sig = questionSignature(settings);
 
-  return Promise.all(
+  const verdicts = await Promise.all(
     tweets.map(async (tweet) => {
       const hit = cache.get(tweet.id);
       if (hit && hit.sig === sig) return { ...decide(tweet.id, hit, settings), cached: true };
@@ -266,15 +315,24 @@ export async function classify(
       if (pending) return pending;
 
       const promise = classifyOne(tweet, settings)
-        .catch((err): Verdict => {
-          const message = (err as Error).message;
-          void noteError(message);
-          return { id: tweet.id, scores: {}, filtered: false, error: message };
-        })
+        .catch((err): Verdict => ({
+          id: tweet.id,
+          scores: {},
+          filtered: false,
+          error: (err as Error).message,
+        }))
         .finally(() => inFlight.delete(tweet.id));
 
       inFlight.set(tweet.id, promise);
       return promise;
     }),
   );
+
+  // Settled once per batch: a batch that reached the API at all clears the
+  // banner, one that could not raises it.
+  const attempted = verdicts.filter((v) => !v.cached);
+  if (attempted.length > 0) {
+    settleError(attempted.find((v) => v.error)?.error ?? null);
+  }
+  return verdicts;
 }

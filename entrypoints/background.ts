@@ -1,5 +1,5 @@
 import { defineBackground, browser } from '#imports';
-import { classify, clearCache, errorStore } from '@/lib/classifier';
+import { classify, clearCache, errorStore, readError, resetStats } from '@/lib/classifier';
 import { loadSettings, settingsStore, statsStore, EMPTY_STATS } from '@/lib/settings';
 import { testCredentials, testFilter } from '@/lib/provider';
 import { activeKey } from '@/lib/defaults';
@@ -36,8 +36,10 @@ async function handle(message: Message) {
       return { settings: await loadSettings() };
     case 'getStats':
       return { stats: (await statsStore.getValue()) ?? EMPTY_STATS };
+    // Distinct key: `error` is also how a rejected handler reports itself, and
+     // the popup would render that string as if it were the stored object.
     case 'getError':
-      return { error: await errorStore.getValue() };
+      return { lastError: await readError() };
     case 'dismissError':
       await errorStore.setValue(null);
       return { ok: true };
@@ -45,7 +47,7 @@ async function handle(message: Message) {
       await clearCache();
       return { ok: true };
     case 'resetStats':
-      await statsStore.setValue(EMPTY_STATS);
+      await resetStats();
       return { ok: true };
     case 'testKey':
       return await testCredentials(message.provider, message.apiKey, message.model);

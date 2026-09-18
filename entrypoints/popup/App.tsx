@@ -33,7 +33,7 @@ export default function App() {
       .catch(() => {});
     browser.runtime
       .sendMessage({ type: 'getError' })
-      .then((r: { error?: { message: string } | null }) => setApiError(r?.error ?? null))
+      .then((r: { lastError?: { message: string } | null }) => setApiError(r?.lastError ?? null))
       .catch(() => {});
   }, []);
 
