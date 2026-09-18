@@ -8,6 +8,10 @@ Classification runs on [TypeSafe's Jev](https://typesafe.ai/blog/introducing-sys
 a System One model that returns calibrated probabilities instead of prose. Bring
 your own key; nothing is proxied through a server of ours.
 
+![Timeline with filtered posts collapsed, and the extension popup](docs/screenshots/01-timeline-filtered.png)
+
+![Settings page: provider, API key, custom filters and appearance](docs/screenshots/02-settings.png)
+
 ## Why Jev rather than a chat model
 
 Each post becomes one request carrying a few typed yes/no questions, answered in
