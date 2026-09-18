@@ -190,43 +190,10 @@ the only one that needs updating.
 
 ## Status
 
-Working and in daily use. 
-> clean-twitter@0.1.0 zip /Users/nikhil.bafna/code/github.com/midplane/clean-twitter
-> wxt zip
+Working and in daily use. `pnpm zip` builds a store-ready package;
+[STORE.md](STORE.md) has the listing copy, permission justifications and
+data-use disclosures for Chrome Web Store submission.
 
+## Licence
 
-WXT 0.21.4
-ℹ Building chrome-mv3 for production with Vite 8.3.0
-[?25l
-⠋ Preparing...[K
-⠋ [1/3] background[K
-⠋ [2/3] content[K
-⠋ [3/3] options, popup[K
-⠙ [3/3] options, popup[K
-[K[?25h
-[K[?25h✔ Built extension in 155 ms
-  ├─ .output/chrome-mv3/manifest.json                   753 B    
-  ├─ .output/chrome-mv3/options.html                    543 B    
-  ├─ .output/chrome-mv3/popup.html                      533 B    
-  ├─ .output/chrome-mv3/background.js                   19.36 kB 
-  ├─ .output/chrome-mv3/chunks/jsx-runtime-DSNkntMB.js  230.66 kB
-  ├─ .output/chrome-mv3/chunks/options-D3pcRlDp.js      10.55 kB 
-  ├─ .output/chrome-mv3/chunks/popup-RPZjzzz4.js        5.92 kB  
-  ├─ .output/chrome-mv3/content-scripts/content.js      19.25 kB 
-  ├─ .output/chrome-mv3/assets/options-IyvSs7h5.css     5.04 kB  
-  ├─ .output/chrome-mv3/assets/popup-9MwM3Lcr.css       3.75 kB  
-  ├─ .output/chrome-mv3/content-scripts/content.css     1.11 kB  
-  ├─ .output/chrome-mv3/icon/128.png                    2.35 kB  
-  ├─ .output/chrome-mv3/icon/16.png                     366 B    
-  ├─ .output/chrome-mv3/icon/32.png                     660 B    
-  ├─ .output/chrome-mv3/icon/48.png                     944 B    
-  └─ .output/chrome-mv3/icon/96.png                     1.81 kB  
-Σ Total size: 303.61 kB                               
-ℹ Zipping extension...
-✔ Zipped extension in 17 ms
-  └─ .output/clean-twitter-0.1.0-chrome.zip  103.98 kB
-Σ Total size: 103.98 kB                    
-✔ Finished in 270 ms builds a store-ready package, and
-[STORE.md](STORE.md) has the listing copy and permission justifications. Still
-needed before submitting: a licence, and a published privacy policy covering the
-data flow described above.
+[MIT](LICENSE). Privacy policy: [PRIVACY.md](PRIVACY.md).
