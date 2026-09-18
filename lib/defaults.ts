@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
   hidePromoted: true,
   hideMode: 'collapse',
-  hideUntilChecked: true,
+  hideUntilChecked: false,
   allowlist: [],
 };
 
